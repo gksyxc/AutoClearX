@@ -6,9 +6,43 @@
 itemMaterialWhitelist: []
 
 # 实体白名单：填 Bukkit EntityType 枚举名，命中的实体不会被清理。
-# 示例（建议按需取消注释使用）：
-# entityTypeWhitelist:
-#   - VILLAGER
-#   - IRON_GOLEM
-entityTypeWhitelist: []
+# 默认忽略友善/可饲养的生物，避免误清理。
+entityTypeWhitelist:
+  - ALLAY
+  - AXOLOTL
+  - BEE
+  - CAMEL
+  - CAT
+  - CHICKEN
+  - COD
+  - COW
+  - DOLPHIN
+  - DONKEY
+  - FOX
+  - FROG
+  - GLOW_SQUID
+  - GOAT
+  - HORSE
+  - IRON_GOLEM
+  - LLAMA
+  - MOOSHROOM
+  - MULE
+  - OCELOT
+  - PANDA
+  - PARROT
+  - PIG
+  - PUFFERFISH
+  - RABBIT
+  - SALMON
+  - SHEEP
+  - SNIFFER
+  - SQUID
+  - STRIDER
+  - TADPOLE
+  - TRADER_LLAMA
+  - TROPICAL_FISH
+  - TURTLE
+  - VILLAGER
+  - WANDERING_TRADER
+  - WOLF
 language: zh_CN

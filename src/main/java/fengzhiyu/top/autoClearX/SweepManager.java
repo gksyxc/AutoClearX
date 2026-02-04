@@ -167,8 +167,9 @@ public class SweepManager {
                 return;
             }
             Chunk chunk = world.getChunkAt(key.chunkX(), key.chunkZ());
-            int count = countChunkEntities(chunk);
-            updateChunkStat(key, count);
+            int localCount = countChunkEntities(chunk);
+            int globalChunkCount = countChunkEntitiesSingle(chunk);
+            updateChunkStat(key, localCount, globalChunkCount);
             queue.addLast(key);
             inQueue.add(key);
             checkThresholdsAfterUpdate();
@@ -176,13 +177,13 @@ public class SweepManager {
         }
     }
 
-    private void updateChunkStat(ChunkKey key, int count) {
+    private void updateChunkStat(ChunkKey key, int localCount, int globalChunkCount) {
         ChunkStat previous = stats.get(key);
         if (previous != null) {
-            globalCount -= previous.count();
+            globalCount -= previous.globalCount();
         }
-        stats.put(key, new ChunkStat(count, System.currentTimeMillis()));
-        globalCount += count;
+        stats.put(key, new ChunkStat(localCount, globalChunkCount, System.currentTimeMillis()));
+        globalCount += globalChunkCount;
     }
 
     private void pruneExpiredStats() {
@@ -192,13 +193,13 @@ public class SweepManager {
             ChunkKey key = entry.getKey();
             ChunkStat stat = entry.getValue();
             if (isExpired(stat.lastUpdate(), STAT_TIMEOUT)) {
-                globalCount -= stat.count();
+                globalCount -= stat.globalCount();
                 iterator.remove();
                 continue;
             }
             World world = Bukkit.getWorld(key.worldName());
             if (world == null || !world.isChunkLoaded(key.chunkX(), key.chunkZ())) {
-                globalCount -= stat.count();
+                globalCount -= stat.globalCount();
                 iterator.remove();
             }
         }
@@ -257,7 +258,8 @@ public class SweepManager {
             return true;
         }
         int count = countChunkEntities(world.getChunkAt(targetChunk.chunkX(), targetChunk.chunkZ()));
-        updateChunkStat(targetChunk, count);
+        int globalChunkCount = countChunkEntitiesSingle(world.getChunkAt(targetChunk.chunkX(), targetChunk.chunkZ()));
+        updateChunkStat(targetChunk, count, globalChunkCount);
         Thresholds thresholds = calculateThresholds();
         if (!thresholds.isValid()) {
             return true;
@@ -304,7 +306,8 @@ public class SweepManager {
             addToTrash(stack);
         }
         int count = countChunkEntities(chunk);
-        updateChunkStat(targetChunk, count);
+        int globalChunkCount = countChunkEntitiesSingle(chunk);
+        updateChunkStat(targetChunk, count, globalChunkCount);
         notifyNearbyPlayers(targetChunk, langManager.get("sweep.notify.cleanup-done"));
         cancelCountdown(false);
         state = State.IDLE;
@@ -394,6 +397,35 @@ public class SweepManager {
         return itemCount + mobCount;
     }
 
+    private int countChunkEntitiesSingle(Chunk chunk) {
+        int itemCount = 0;
+        int mobCount = 0;
+        for (Entity entity : chunk.getEntities()) {
+            if (entity instanceof Item item) {
+                ItemStack stack = item.getItemStack();
+                if (isWhitelistedItem(stack)) {
+                    continue;
+                }
+                itemCount += stack.getAmount();
+                continue;
+            }
+            if (!(entity instanceof LivingEntity living)) {
+                continue;
+            }
+            if (living instanceof Player) {
+                continue;
+            }
+            if (living.getCustomName() != null) {
+                continue;
+            }
+            if (entityWhitelist.contains(living.getType())) {
+                continue;
+            }
+            mobCount++;
+        }
+        return itemCount + mobCount;
+    }
+
     private int countNearbyLivingEntities(Chunk center) {
         World world = center.getWorld();
         int baseX = center.getX();
@@ -470,7 +502,7 @@ public class SweepManager {
             return Thresholds.invalid();
         }
         int hardCap = benchmarkManager.getHardCapEntities();
-        if (effectiveArea * 0.6 > hardCap * 0.6 || effectiveSingle * 0.3 > hardCap * 0.3) {
+        if (effectiveArea * 0.8 > hardCap * 0.8 || effectiveSingle * 0.3 > hardCap * 0.3) {
             return new Thresholds(hardCap, hardCap);
         }
         return new Thresholds(effectiveArea, effectiveSingle);
@@ -479,8 +511,8 @@ public class SweepManager {
     private ChunkSummary findTopChunk() {
         ChunkSummary best = null;
         for (Map.Entry<ChunkKey, ChunkStat> entry : stats.entrySet()) {
-            if (best == null || entry.getValue().count() > best.count()) {
-                best = new ChunkSummary(entry.getKey(), entry.getValue().count());
+            if (best == null || entry.getValue().localCount() > best.count()) {
+                best = new ChunkSummary(entry.getKey(), entry.getValue().localCount());
             }
         }
         return best;
@@ -549,7 +581,7 @@ public class SweepManager {
         }
     }
 
-    private record ChunkStat(int count, long lastUpdate) {}
+    private record ChunkStat(int localCount, int globalCount, long lastUpdate) {}
 
     private record ChunkSummary(ChunkKey key, int count) {}
 
@@ -557,7 +589,7 @@ public class SweepManager {
 
     public record Thresholds(double globalThreshold, double chunkThreshold) {
         double globalTrigger() {
-            return globalThreshold * 0.6;
+            return globalThreshold * 0.8;
         }
 
         double chunkTrigger() {
