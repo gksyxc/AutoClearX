@@ -53,12 +53,12 @@ AutoClearX 并不会定时全服扫地。
 ### 3. Incremental Monitoring / 增量式统计
 
 - Continuously scans **loaded chunks only**
-- Scans **one chunk per second**, prioritizing player surroundings
+- Scans **10 chunk per second**, prioritizing player surroundings
 - Dynamically updates statistics as chunks load/unload
 - Avoids full-world scans
 
 - 仅统计**已加载区块**
-- 每秒只扫描 **1 个区块**
+- 每秒只扫描 **10 个区块**
 - 优先扫描玩家附近区块
 - 区块卸载后自动移出统计列表，避免全服扫描
 
