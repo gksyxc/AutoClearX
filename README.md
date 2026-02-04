@@ -37,13 +37,13 @@ AutoClearX 并不会定时全服扫地。
 ### 2. Performance-Based Thresholds / 基于性能的阈值
 
 - Cleanup thresholds are derived from benchmark results.
-- Thresholds represent the estimated entity count that would push MSPT toward ~40ms.
+- Thresholds represent the estimated entity count that would push MSPT toward ~50ms.
 - Uses:
   - Multi-chunk slope to limit global entity count
   - Single-chunk slope to limit per-chunk entity density
 
 - 清理阈值完全来源于跑分结果  
-- 阈值表示“接近 40ms MSPT 时的实体规模”  
+- 阈值表示“接近 50ms MSPT 时的实体规模”  
 - 使用：
   - 多区块斜率约束全服总量
   - 单区块斜率约束热点区块
@@ -173,11 +173,4 @@ Only whitelist-related options are configurable.
 - 在性能极强的服务器上，可能在 MSPT 变化前先触及挤压或客户端极限  
   跑分模块已包含上限以避免进入无意义测试区间
 
----
-
-## License
-
-Private / Internal use (adjust as needed).
-
-私有或内部使用（可自行调整）。
 
