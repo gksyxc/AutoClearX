@@ -380,24 +380,48 @@ public class SweepManager {
     }
 
     private int countChunkEntities(Chunk chunk) {
-        int count = 0;
+        int itemCount = 0;
         for (Entity entity : chunk.getEntities()) {
             if (entity instanceof Item item) {
-                if (isWhitelistedItem(item.getItemStack())) {
+                ItemStack stack = item.getItemStack();
+                if (isWhitelistedItem(stack)) {
                     continue;
                 }
-                count++;
-            } else if (entity instanceof LivingEntity living) {
-                if (living instanceof Player) {
+                itemCount += stack.getAmount();
+            }
+        }
+        int mobCount = countNearbyLivingEntities(chunk);
+        return itemCount + mobCount;
+    }
+
+    private int countNearbyLivingEntities(Chunk center) {
+        World world = center.getWorld();
+        int baseX = center.getX();
+        int baseZ = center.getZ();
+        int count = 0;
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                int chunkX = baseX + dx;
+                int chunkZ = baseZ + dz;
+                if (!world.isChunkLoaded(chunkX, chunkZ)) {
                     continue;
                 }
-                if (living.getCustomName() != null) {
-                    continue;
+                Chunk chunk = world.getChunkAt(chunkX, chunkZ);
+                for (Entity entity : chunk.getEntities()) {
+                    if (!(entity instanceof LivingEntity living)) {
+                        continue;
+                    }
+                    if (living instanceof Player) {
+                        continue;
+                    }
+                    if (living.getCustomName() != null) {
+                        continue;
+                    }
+                    if (entityWhitelist.contains(living.getType())) {
+                        continue;
+                    }
+                    count++;
                 }
-                if (entityWhitelist.contains(living.getType())) {
-                    continue;
-                }
-                count++;
             }
         }
         return count;
